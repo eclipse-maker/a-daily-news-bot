@@ -1,0 +1,29 @@
+name: Daily News AI Summary
+
+on:
+  schedule:
+    # 北京时间早上 8:00 (UTC 0:00) 自动运行
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 允许手动点击按钮触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install requests feedparser openai
+
+      - name: Run News Bot
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+        run: python auto_news_bot.py
