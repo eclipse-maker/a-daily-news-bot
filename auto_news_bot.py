@@ -6,70 +6,52 @@ from openai import OpenAI
 
 # --- 配置区域 ---
 
+# 💡 提示: RSSHub (https://rsshub.app) 是一个神器，能把微博、知乎等变成 RSS。
+# GitHub Actions 在海外，访问 RSSHub 官方实例非常稳定。
+
 RSS_SOURCES = [
-    # AI 与前沿技术 (必读)
+    # --- 🕵️‍♂️ 科技 & 极客 (硬核小道消息) ---
     {
-        "name": "OpenAI Blog (官方权威动态)",
-        "url": "https://openai.com/blog/rss.xml"
+        "name": "Hacker News (高分热贴)",
+        "url": "https://hnrss.org/newest?points=100" # 只看超过100分的热贴
     },
     {
-        "name": "MIT Technology Review (麻省理工科技评论)",
-        "url": "https://www.technologyreview.com/feed/"
+        "name": "Reddit LocalLLaMA (AI模型泄露/讨论)",
+        "url": "https://www.reddit.com/r/LocalLLaMA/hot/.rss"
+    },
+
+    # --- 🍉 大陆八卦 & 民生 (微博/知乎/热搜) ---
+    {
+        "name": "微博热搜 (实时)",
+        "url": "https://rsshub.app/weibo/search/hot"
     },
     {
-        "name": "Hacker News (全球极客风向标)",
-        "url": "https://news.ycombinator.com/rss"
+        "name": "知乎热榜",
+        "url": "https://rsshub.app/zhihu/hotlist"
     },
     {
-        "name": "机器之心 Synced (国内AI媒体)",
-        "url": "https://www.jiqizhixin.com/rss"
-    },
-    
-    # 🚀 科技与商业
-    {
-        "name": "TechCrunch (硅谷创投、新产品)",
-        "url": "https://techcrunch.com/feed/"
-    },
-    {
-        "name": "The Verge (数码产品与科技文化)",
-        "url": "https://www.theverge.com/rss/index.xml"
-    },
-    {
-        "name": "36Kr (36氪-国内科技商业)",
+        "name": "36Kr (科技商业八卦)",
         "url": "https://36kr.com/feed"
     },
     
-    # 🧬 数字生活 & 深度阅读
+    # --- 💰 金融 & 宏观 (搞钱必看) ---
     {
-        "name": "Wired 连线 (科技改变未来)",
-        "url": "https://www.wired.com/feed/rss"
-    },
-    {
-        "name": "Lifehacker (效率工具、生活黑客)",
-        "url": "https://lifehacker.com/rss"
-    },
-    {
-        "name": "少数派 sspai (高品质数字生活)",
-        "url": "https://sspai.com/feed"
+        "name": "华尔街见闻 (全球资讯)",
+        "url": "https://rsshub.app/wallstreetcn/news/global"
     },
     
-    # 🌏 全球视野
+    # --- 🌏 国际政治 & 局势 ---
     {
-        "name": "New York Times World (世界局势)",
-        "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
-    },
-    {
-        "name": "BBC Technology (BBC科技版块)",
-        "url": "http://feeds.bbci.co.uk/news/technology/rss.xml"
-    },
-    {
-        "name": "Reuters (路透社)",
-        "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_kind=best"
-    },
+        "name": "联合早报 (中国/国际)",
+        "url": "https://rsshub.app/zaobao/realtime/china" 
+    }
 ]
 
-LIMIT_PER_SOURCE = 5
-QWEN_MODEL = "qwen3-max"
+# 每个源只取前 N 条 (避免内容过多撑爆 AI 上下文)
+LIMIT_PER_SOURCE = 3
+
+# Qwen 模型选择
+QWEN_MODEL = "qwen-plus"
 
 # --- 核心代码 ---
 
@@ -87,6 +69,7 @@ def fetch_rss_data(sources):
     for source in sources:
         try:
             print(f"   正在读取: {source['name']}...")
+            # 设置超时，防止某个 RSS 源卡死
             feed = feedparser.parse(source['url'])
             
             if not feed.entries:
@@ -98,7 +81,11 @@ def fetch_rss_data(sources):
             for entry in entries:
                 title = entry.get('title', 'No Title')
                 link = entry.get('link', '')
-                summary = entry.get('summary', '')[:300] 
+                
+                # 清洗摘要：RSSHub生成的摘要通常包含图片HTML，我们只取前300字文本
+                raw_summary = entry.get('summary', '')
+                # 简单去除HTML标签 (也可以引入 BeautifulSoup，但为了轻量化先这样处理)
+                summary = raw_summary.replace('<p>', '').replace('</p>', '\n').replace('<br>', '\n')[:300]
                 
                 article_text = f"来源: {source['name']}\n标题: {title}\n链接: {link}\n摘要: {summary}\n"
                 all_articles.append(article_text)
@@ -126,22 +113,29 @@ def summarize_with_qwen(articles_list):
     
     articles_text = "\n---\n".join(articles_list)
     
-    system_prompt = "你是一个专业的国际新闻主编。你的目标是为中国读者提供一份简明扼要、高价值的全球新闻简报。"
+    system_prompt = "你是一个全知全能的情报官。你的目标是从纷繁复杂的全球信息中，为用户提炼出一份高价值的“内部参考”日报。"
     user_prompt = f"""
-    请阅读以下抓取到的原始新闻数据：
+    请分析以下抓取到的原始信息（包含科技、金融、民生、八卦等）：
     
     {articles_text}
     
     请执行以下任务：
-    1. **筛选与去重**：剔除广告、重复内容及琐碎信息。
-    2. **中文总结**：用流畅的中文总结每条重要新闻。
-    3. **格式化输出**：
-       - 使用 HTML 标签进行简单的排版（因为 PushPlus 对 Markdown 支持有时不如 HTML 稳定，特别是换行）。
-       - 标题加粗，使用 `<br>` 换行。
-       - 每条新闻格式：`emoji <b>标题</b>` + `<br>` + `简短总结` + `<br>` + `<a href="link">阅读原文</a>`。
-    4. **每日点评**：在末尾增加一个“小编毒舌”环节。
+    1. **去噪与聚合**：
+       - 微博/知乎热搜通常有很多娱乐明星琐事，**请过滤掉无意义的明星绯闻**。
+       - **重点保留**：突发社会事件、政策变动、金融异动、科技突破、行业内幕。
+    2. **风格化总结**：
+       - 使用“人话”，带一点幽默和犀利，不要像新闻联播。
+       - 如果是负面新闻（如股市大跌、裁员），请用客观但警示的语气。
+    3. **分类输出 (HTML格式)**：
+       - 🍉 **吃瓜 & 民生** (社会热点、知乎高赞、大V观点)
+       - 💰 **搞钱 & 宏观** (股市、金融、房产)
+       - 🤖 **硬核 & 科技** (AI、极客新闻)
+    4. **排版要求**：
+       - 标题加粗 `<b>...</b>`。
+       - 必须包含链接 `<a href="...">[传送门]</a>`。
+       - 每条新闻结束后加 `<br><br>`。
     
-    直接输出内容，不要包含开场白。
+    直接输出内容。
     """
     
     try:
@@ -158,55 +152,39 @@ def summarize_with_qwen(articles_list):
         return f"AI 接口调用出错: {e}"
 
 def push_pushplus(content):
-    """推送到 PushPlus"""
     token = get_env_variable("PUSHPLUS_TOKEN")
-    
     if not token:
         print("⚠️ PushPlus Token 缺失，跳过推送。")
         return
 
     print("🚀 正在推送到 PushPlus...")
-    
     url = "http://www.pushplus.plus/send"
-    
-    # 获取当前日期
     today = datetime.now().strftime("%Y-%m-%d")
-    title = f"🌍 全球新闻日报 ({today})"
+    title = f"🌍 全球情报内参 ({today})"
     
     data = {
         "token": token,
         "title": title,
         "content": content,
-        "template": "html"  # 使用 HTML 模板以获得更好的排版
+        "template": "html"
     }
     
     try:
         resp = requests.post(url, json=data)
-        result = resp.json()
-        if result.get('code') == 200:
-            print(f"✅ 推送成功: {result}")
-        else:
-            print(f"❌ 推送失败: {result}")
+        print(f"✅ 推送结果: {resp.json()}")
     except Exception as e:
         print(f"❌ 请求异常: {e}")
 
 def main():
-    # 1. 抓取
     articles = fetch_rss_data(RSS_SOURCES)
-    
-    # 2. 总结
     if articles:
         summary = summarize_with_qwen(articles)
-        
-        # 本地打印预览
         print("\n" + "="*20 + " 内容预览 " + "="*20)
         print(summary)
         print("="*50 + "\n")
-        
-        # 3. 推送
         push_pushplus(summary)
     else:
-        print("📭 未获取到任何新闻，即将跳过后续步骤。")
+        print("📭 未获取到任何新闻。")
 
 if __name__ == "__main__":
     main()
