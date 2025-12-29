@@ -7,22 +7,69 @@ from openai import OpenAI
 # --- 配置区域 ---
 
 RSS_SOURCES = [
+    # AI 与前沿技术 (必读)
     {
-        "name": "TechCrunch (科技)",
+        "name": "OpenAI Blog (官方权威动态)",
+        "url": "https://openai.com/blog/rss.xml"
+    },
+    {
+        "name": "MIT Technology Review (麻省理工科技评论)",
+        "url": "https://www.technologyreview.com/feed/"
+    },
+    {
+        "name": "Hacker News (全球极客风向标)",
+        "url": "https://news.ycombinator.com/rss"
+    },
+    {
+        "name": "机器之心 Synced (国内AI媒体)",
+        "url": "https://www.jiqizhixin.com/rss"
+    },
+    
+    # 🚀 科技与商业
+    {
+        "name": "TechCrunch (硅谷创投、新产品)",
         "url": "https://techcrunch.com/feed/"
     },
     {
-        "name": "New York Times (世界)",
+        "name": "The Verge (数码产品与科技文化)",
+        "url": "https://www.theverge.com/rss/index.xml"
+    },
+    {
+        "name": "36Kr (36氪-国内科技商业)",
+        "url": "https://36kr.com/feed"
+    },
+    
+    # 🧬 数字生活 & 深度阅读
+    {
+        "name": "Wired 连线 (科技改变未来)",
+        "url": "https://www.wired.com/feed/rss"
+    },
+    {
+        "name": "Lifehacker (效率工具、生活黑客)",
+        "url": "https://lifehacker.com/rss"
+    },
+    {
+        "name": "少数派 sspai (高品质数字生活)",
+        "url": "https://sspai.com/feed"
+    },
+    
+    # 🌏 全球视野
+    {
+        "name": "New York Times World (世界局势)",
         "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
     },
     {
-        "name": "Hacker News (极客)",
-        "url": "https://news.ycombinator.com/rss"
+        "name": "BBC Technology (BBC科技版块)",
+        "url": "http://feeds.bbci.co.uk/news/technology/rss.xml"
+    },
+    {
+        "name": "Reuters (路透社)",
+        "url": "https://www.reutersagency.com/feed/?best-topics=political-general&post_kind=best"
     },
 ]
 
 LIMIT_PER_SOURCE = 5
-QWEN_MODEL = "qwen3-plus"
+QWEN_MODEL = "qwen3-max"
 
 # --- 核心代码 ---
 
