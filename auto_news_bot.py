@@ -22,7 +22,7 @@ RSS_SOURCES = [
 ]
 
 LIMIT_PER_SOURCE = 5
-QWEN_MODEL = "qwen3-plus"
+QWEN_MODEL = "qwen3-max"
 
 # --- 核心代码 ---
 
