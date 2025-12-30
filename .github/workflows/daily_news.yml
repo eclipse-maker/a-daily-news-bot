@@ -3,7 +3,7 @@ name: Daily News AI Summary
 on:
   schedule:
     # 北京时间早上 8:00 (UTC 0:00) 自动运行
-    - cron: '0 0 * * *'
+    - cron: '15 0 * * *'
   workflow_dispatch: # 允许手动点击按钮触发
 
 jobs:
